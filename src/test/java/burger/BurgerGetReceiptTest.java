@@ -1,5 +1,6 @@
 package burger;
 
+import org.assertj.core.api.SoftAssertions;
 import praktikum.IngredientType;
 
 import org.junit.Before;
@@ -26,48 +27,26 @@ public class BurgerGetReceiptTest extends BurgerBaseTest {
 
 //__Метод getReceipt____________________________________________________________________________________________________
 
-    //Шапка
+    // Формат начала и конца чека
     @Test
     public void getReceiptShouldHaveCorrectHeaderTest() {
-
-        String receipt = burger.getReceipt();
-
-        //Строим строку в том же формате, что в getReceipt
-        String expectedHeader = String.format("(==== %s ====)%n", mockBun.getName());
-        assertTrue("Чек должен строго начинаться с шапки",
-                receipt.startsWith(expectedHeader));
-    }
-
-    //Строка ингредиента
-    @Test
-    public void getReceiptShouldHaveCorrectIngredientFormatTest() {
 
         burger.addIngredient(mockFilling);
         String receipt = burger.getReceipt();
 
-        String expectedLine = String.format("= %s %s =%n",
-                mockFilling.getType().toString().toLowerCase(),
-                mockFilling.getName());
+        //Строим строки в том же формате, что в getReceipt
+        String expectedHeader = String.format("(==== %s ====)%n", mockBun.getName());
+        String expectedEnding = String.format("%nPrice: %f%n", burger.getPrice());
 
-        assertTrue("Строка ингредиента должна точно соответствовать формату",
-                receipt.contains(expectedLine));
-    }
+        SoftAssertions soft = new SoftAssertions();
+        soft.assertThat(receipt.startsWith(expectedHeader))
+                .as("Чек должен строго начинаться с шапки с дальнейшим переносом строки")
+                .isTrue();
 
-    //Футер - наличие
-    @Test
-    public void getReceiptShouldContainBunLineTwiceTest() {
-
-        String receipt = burger.getReceipt();
-        String bunLine = String.format("(==== %s ====)%n", mockBun.getName());
-
-        //Счетчик, сколько раз появилось bunLine в receipt
-        long bunLineCount = Pattern.compile(Pattern.quote(bunLine))
-                .matcher(receipt)
-                .results()
-                .count();
-
-        assertEquals("Строка булки должна встречаться ровно 2 раза (шапка и подвал)",
-                2, bunLineCount);
+        soft.assertThat(receipt.endsWith(expectedEnding))
+                .as("Чек должен строго заканчиваться строкой цены с переносом строки")
+                .isTrue();
+        soft.assertAll();
     }
 
     //Футер - позиция: подвал идёт после ингредиентов и перед ценой
@@ -82,21 +61,40 @@ public class BurgerGetReceiptTest extends BurgerBaseTest {
                 mockFilling.getType().toString().toLowerCase(),
                 mockFilling.getName());
 
-        assertTrue("Подвал (вторая строка булки) должен идти после строки ингредиента",
-                receipt.lastIndexOf(bunLine) > receipt.indexOf(ingredientLine));
-    }
-
-    @Test
-    public void getReceiptShouldPlaceFooterBeforePriceTest() {
-
-        burger.addIngredient(mockFilling);
-        String receipt = burger.getReceipt();
-
-        String bunLine = String.format("(==== %s ====)%n", mockBun.getName());
         String priceLine = String.format("Price: %f", burger.getPrice());
 
-        assertTrue("Подвал (вторая строка булки) должен идти до строки цены",
-                receipt.lastIndexOf(bunLine) < receipt.indexOf(priceLine));
+        SoftAssertions soft = new SoftAssertions();
+        soft.assertThat(receipt.lastIndexOf(bunLine) < receipt.indexOf(priceLine))
+                .as("Подвал (вторая строка булки) должен идти до строки цены")
+                .isTrue();
+
+        soft.assertThat(receipt.lastIndexOf(bunLine) > receipt.indexOf(ingredientLine))
+                .as("Подвал (вторая строка булки) должен идти после строки ингредиента")
+                .isTrue();
+        soft.assertAll();
+    }
+
+
+    @Test
+    public void getReceiptShouldContainBunLineTwiceTest() {
+
+        String receipt = burger.getReceipt();
+        String bunLine = String.format("(==== %s ====)%n", mockBun.getName());
+
+        //Счетчик, сколько раз появилось bunLine в receipt
+        long bunLineCount = Pattern.compile(Pattern.quote(bunLine))
+                .matcher(receipt)
+                .results()
+                .count();
+
+        SoftAssertions soft = new SoftAssertions();
+        soft.assertThat(receipt)
+                .as("Чек должен содержать строку булки")
+                .contains(bunLine);
+        soft.assertThat(bunLineCount)
+                .as("Строка булки должна встречаться ровно 2 раза (шапка и подвал)")
+                .isEqualTo(2);
+        soft.assertAll();
     }
 
     //Формат цены
@@ -112,7 +110,6 @@ public class BurgerGetReceiptTest extends BurgerBaseTest {
                 receipt.contains(expectedPriceLine));
     }
 
-    //Для цены - одна строка
     @Test
     public void getReceiptShouldHaveExactlyOnePriceLineTest() {
 
@@ -126,20 +123,29 @@ public class BurgerGetReceiptTest extends BurgerBaseTest {
                 .results()
                 .count();
 
-        assertEquals("Строка цены должна встречаться ровно 1 раз",
-                1, priceLineCount);
+        SoftAssertions soft = new SoftAssertions();
+        soft.assertThat(receipt)
+                .as("Чек должен содержать строку цены")
+                .contains(expectedPriceLine);
+        soft.assertThat(priceLineCount)
+                .as("Строка цены должна встречаться ровно 1 раз")
+                .isEqualTo(1);
+        soft.assertAll();
     }
 
+    //Строка ингредиента
     @Test
-    public void getReceiptShouldEndWithPriceLineTest() {
+    public void getReceiptShouldHaveCorrectIngredientFormatTest() {
 
         burger.addIngredient(mockFilling);
         String receipt = burger.getReceipt();
 
-        String expectedEnding = String.format("%nPrice: %f%n", burger.getPrice());
+        String expectedLine = String.format("= %s %s =%n",
+                mockFilling.getType().toString().toLowerCase(),
+                mockFilling.getName());
 
-        assertTrue("Чек должен строго заканчиваться строкой цены с переносом строки",
-                receipt.endsWith(expectedEnding));
+        assertTrue("Строка ингредиента должна точно соответствовать формату",
+                receipt.contains(expectedLine));
     }
 
     @Test
